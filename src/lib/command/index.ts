@@ -2,19 +2,23 @@ import type { DispatchConfig, Handler } from "./command-bus";
 import { CommandBus } from "./command-bus";
 import { TransitionStore } from "./transitions-store";
 
+type Action<TPayload = void> = [TPayload] extends [void]
+	? (payload?: undefined, config?: DispatchConfig) => void
+	: (payload: TPayload, config?: DispatchConfig) => void;
+
 export interface Actions {
 	counter: {
-		increment: () => void;
-		decrement: () => void;
-		reset: () => void;
+		increment: Action;
+		decrement: Action;
+		reset: Action;
 	};
 
 	content: {
-		show: (content: string) => void;
+		show: Action<string>;
 	};
 
 	async: {
-		execute: () => void;
+		execute: Action;
 	};
 }
 
@@ -62,13 +66,9 @@ export class Command {
 				return self.getActionsProxy([...path, prop]);
 			},
 
-			apply(_target, _thisArg, args: unknown[]) {
+			apply(_target, _thisArg, args: [unknown, DispatchConfig?]) {
 				const commandName = path.join(".");
-				return self.$commandBus.dispatch(
-					commandName,
-					args[0],
-					args[1] as DispatchConfig,
-				);
+				return self.$commandBus.dispatch(commandName, args[0], args[1]);
 			},
 		}) as unknown as Actions;
 	}
