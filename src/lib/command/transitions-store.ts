@@ -57,7 +57,7 @@ export class TransitionStore {
 		};
 	}
 
-	isExecuting(key: string) {
+	isExecuting(key: TransitionKey) {
 		const serializedKey = TransitionStore.serializeKey(key);
 		return !!this.transitions.get(serializedKey);
 	}
