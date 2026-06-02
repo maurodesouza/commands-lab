@@ -1,204 +1,54 @@
-Welcome to your new TanStack Start app! 
+# Commands Lab (experimental)
 
-# Getting Started
+Centralized actions API lab exploring how to model all application actions behind a single `actions` object with nested domains and strong observability.
 
-To run this application:
+## Overview
 
-```bash
-pnpm install
-pnpm dev
-```
+This repository is a personal laboratory to experiment with a unified, framework-agnostic actions API that can be invoked from anywhere (React components, JS modules, stores, etc.). The goals are:
 
-# Building For Production
+- **Single entrypoint**: call actions as `actions.domain.action()` or `actions.domain.subdomain.action()`.
+- **Traceability**: know when an action starts/finishes and whether it’s running (transitions/executing state).
+- **Result retrieval**: actions return `[result, error]` tuples, enabling ergonomic async calling.
+- **Fast dispatch path**: support `actions.dispatch(command, payload, config?)` to plug into SSE/realtime easily.
+- **Context support**: isolate multiple concurrent “contexts” (e.g., two pipeline editors) so actions for context A don’t affect B, while still allowing global calls from anywhere.
 
-To build this application for production:
+This is not a package or product. It’s a playground to evaluate API designs, ergonomics, and pitfalls.
 
-```bash
-pnpm build
-```
+## Versions
 
-## Testing
+- **V1**: Proxy-based, scoped actions with a command bus and transition tracking. Solves centralized calls and basic traceability, but has clarity and scoping pitfalls.
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+<details>
+  <summary>V1</summary>
 
-```bash
-pnpm test
-```
+#### Overview
 
-## Styling
+The V1 prototype is under `src/lib/command/v1` and demonstrated by `src/components/v1` on the `/v1` route.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+- **Core building blocks**
+  - `CommandV1`, `CommandBusV1`: register handlers and dispatch commands.
+  - `ActionsV1`: a Proxy that maps nested member access/calls to command names (e.g., `actionsV1.counter.increment()` → "counter.increment").
+  - `TransitionStoreV1`: tracks in-flight executions so the UI can reflect loading states via `useTransitionV1`.
+- **Examples**
+  - Counter (`counter.increment`, `counter.decrement`, `counter.reset`).
+  - Content (`content.show`).
+  - Async demo with transitions and disabled UI while executing.
 
-### Removing Tailwind CSS
+#### Issues
 
-If you prefer not to use Tailwind CSS:
+- **Hidden contexts**
+  - Context IDs are internal to `CommandV1.scope()` and not discoverable or enumerable; you can’t tell which contexts exist.
+- **Implicit scope in dispatch**
+  - The Proxy composes command keys with the current scope. Calls that look global (e.g., `actions.content.show()`) may be scoped implicitly. In `src/components/v1/show-content`, TypeScript can suggest `actions.async.execute()`, but it won’t work from that context because the emitted command name is scope-prefixed.
+- **Type/runtime mismatch**
+  - The Proxy makes any nested property callable; TypeScript can suggest methods without a registered handler, leading to misleading affordances and runtime no-ops.
+- **Unclear context ergonomics**
+  - The API doesn’t make it obvious when you’re using a scoped vs global proxy, nor how to safely target multiple contexts from anywhere.
+</details>
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `pnpm add @tailwindcss/vite tailwindcss --dev`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-pnpm lint
-pnpm format
-pnpm check
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+<details>
+  <summary>V2</summary>
+  <div align="center">
+    <img src="https://media1.tenor.com/m/N9fIeXCcZpQAAAAC/brick-brick-by-brick.gif" alt="Green octopus cartoon building a brick wall">
+  </div>
+</details>
