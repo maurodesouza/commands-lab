@@ -63,9 +63,7 @@ export class TransitionStore {
 	}
 
 	private notify() {
-		for (const observer of this.observers) {
-			observer();
-		}
+		for (const observer of this.observers) observer();
 	}
 
 	static serializeKey(key: TransitionKey) {
