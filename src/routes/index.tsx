@@ -1,65 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Async } from "#/components/async";
-import { Counter } from "#/components/counter";
-import { ShowContent } from "#/components/show-content";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
 	return (
 		<div className="p-8 flex flex-col gap-4 items-start">
-			<Counter.Container>
-				<Counter.Controls>
-					<Counter.Increment />
-					<Counter.Reset />
-					<Counter.Decrement />
-				</Counter.Controls>
-				<Counter.Preview />
-			</Counter.Container>
-
-			<div className="flex flex-col gap-4 items-start">
-				<ShowContent.Provider>
-					<ShowContent.Container>
-						<ShowContent.Controls>
-							<ShowContent.Show.Greeting />
-							<ShowContent.Show.Farewell />
-							<ShowContent.Show.Thanks />
-							<ShowContent.Show.Congratulation />
-						</ShowContent.Controls>
-						<ShowContent.Preview />
-					</ShowContent.Container>
-				</ShowContent.Provider>
-
-				<ShowContent.Provider>
-					<ShowContent.Container>
-						<ShowContent.Controls>
-							<ShowContent.Show.Greeting />
-							<ShowContent.Show.Farewell />
-							<ShowContent.Show.Thanks />
-							<ShowContent.Show.Congratulation />
-						</ShowContent.Controls>
-						<ShowContent.Preview />
-					</ShowContent.Container>
-				</ShowContent.Provider>
-
-				<ShowContent.Provider>
-					<ShowContent.Container>
-						<ShowContent.Controls>
-							<ShowContent.Show.Greeting />
-							<ShowContent.Show.Farewell />
-							<ShowContent.Show.Thanks />
-							<ShowContent.Show.Congratulation />
-						</ShowContent.Controls>
-						<ShowContent.Preview />
-					</ShowContent.Container>
-				</ShowContent.Provider>
-			</div>
-
-			<Async.Container>
-				<Async.Execute />
-				<Async.Handler />
-				<Async.Preview />
-			</Async.Container>
+			<h1 className="text-2xl font-bold">Welcome</h1>
+			<Link
+				to="/v1"
+				className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+			>
+				Go to V1
+			</Link>
 		</div>
 	);
 }

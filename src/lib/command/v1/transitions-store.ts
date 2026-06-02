@@ -2,22 +2,22 @@ type Transition = {
 	abort: () => void;
 };
 
-export type TransitionKey = unknown | unknown[];
+export type TransitionKeyV1 = unknown | unknown[];
 
-export type TransitionConfig = {
-	transition: TransitionKey;
+export type TransitionConfigV1 = {
+	transition: TransitionKeyV1;
 };
 
-export class TransitionStore {
-	private static instance: TransitionStore;
+export class TransitionStoreV1 {
+	private static instance: TransitionStoreV1;
 
 	private observers = new Set<() => void>();
 	transitions: Map<string, Transition> = new Map();
 
 	private constructor() {}
 
-	start(key: TransitionKey) {
-		const serializedKey = TransitionStore.serializeKey(key);
+	start(key: TransitionKeyV1) {
+		const serializedKey = TransitionStoreV1.serializeKey(key);
 
 		if (this.transitions.has(serializedKey)) {
 			this.abort(key);
@@ -36,15 +36,15 @@ export class TransitionStore {
 		};
 	}
 
-	abort(key: TransitionKey) {
-		const serializedKey = TransitionStore.serializeKey(key);
+	abort(key: TransitionKeyV1) {
+		const serializedKey = TransitionStoreV1.serializeKey(key);
 		const transition = this.transitions.get(serializedKey);
 
 		if (transition) transition.abort();
 	}
 
-	done(key: TransitionKey) {
-		const serializedKey = TransitionStore.serializeKey(key);
+	done(key: TransitionKeyV1) {
+		const serializedKey = TransitionStoreV1.serializeKey(key);
 		this.transitions.delete(serializedKey);
 		this.notify();
 	}
@@ -57,8 +57,8 @@ export class TransitionStore {
 		};
 	}
 
-	isExecuting(key: TransitionKey) {
-		const serializedKey = TransitionStore.serializeKey(key);
+	isExecuting(key: TransitionKeyV1) {
+		const serializedKey = TransitionStoreV1.serializeKey(key);
 		return !!this.transitions.get(serializedKey);
 	}
 
@@ -66,15 +66,15 @@ export class TransitionStore {
 		for (const observer of this.observers) observer();
 	}
 
-	static serializeKey(key: TransitionKey) {
+	static serializeKey(key: TransitionKeyV1) {
 		return JSON.stringify(key);
 	}
 
 	static getInstance() {
-		if (!TransitionStore.instance) {
-			TransitionStore.instance = new TransitionStore();
+		if (!TransitionStoreV1.instance) {
+			TransitionStoreV1.instance = new TransitionStoreV1();
 		}
 
-		return TransitionStore.instance;
+		return TransitionStoreV1.instance;
 	}
 }

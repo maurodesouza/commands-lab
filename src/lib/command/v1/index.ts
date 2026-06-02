@@ -1,12 +1,12 @@
 import type { DispatchConfig, Handler } from "./command-bus";
-import { CommandBus } from "./command-bus";
-import { TransitionStore } from "./transitions-store";
+import { CommandBusV1 } from "./command-bus";
+import { TransitionStoreV1 } from "./transitions-store";
 
 type Action<TPayload = void> = [TPayload] extends [void]
-	? (payload?: undefined, config?: DispatchConfig) => void
+	? (payload?: TPayload, config?: DispatchConfig) => void
 	: (payload: TPayload, config?: DispatchConfig) => void;
 
-export interface Actions {
+export interface ActionsV1 {
 	counter: {
 		increment: Action;
 		decrement: Action;
@@ -22,17 +22,17 @@ export interface Actions {
 	};
 }
 
-export class Command {
+export class CommandV1 {
 	private $scope?: string;
 
-	private $commandBus: CommandBus;
-	private $transitions: TransitionStore;
+	private $commandBus: CommandBusV1;
+	private $transitions: TransitionStoreV1;
 
 	constructor(scope?: string) {
 		this.$scope = scope;
 
-		this.$transitions = TransitionStore.getInstance();
-		this.$commandBus = new CommandBus(this.$transitions);
+		this.$transitions = TransitionStoreV1.getInstance();
+		this.$commandBus = new CommandBusV1(this.$transitions);
 	}
 
 	handle<TPayload = unknown, TResult = unknown>(
@@ -57,7 +57,7 @@ export class Command {
 		);
 	}
 
-	getActionsProxy(argPath?: string[]): Actions {
+	getActionsProxy(argPath?: string[]): ActionsV1 {
 		const path = argPath ?? (this.$scope ? [this.$scope] : []);
 		const self = this;
 
@@ -70,7 +70,7 @@ export class Command {
 				const commandName = path.join(".");
 				return self.$commandBus.dispatch(commandName, args[0], args[1]);
 			},
-		}) as unknown as Actions;
+		}) as unknown as ActionsV1;
 	}
 
 	private buildKey(command: string) {
@@ -82,10 +82,10 @@ export class Command {
 		const id = scope ?? Math.random().toString(36).substring(2, 15);
 		const key = `${prefix}:${id}`;
 
-		return new Command(key);
+		return new CommandV1(key);
 	}
 }
 
-export const command = new Command();
+export const commandV1 = new CommandV1();
 
-export const actions = command.getActionsProxy();
+export const actionsV1 = commandV1.getActionsProxy();

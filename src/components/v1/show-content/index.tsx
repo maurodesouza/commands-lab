@@ -6,11 +6,11 @@ import {
 	useState,
 } from "react";
 import { twc } from "react-twc";
-import { type Actions, Command } from "#/lib/command";
+import { type ActionsV1, CommandV1 } from "#/lib/command/v1";
 
 type ShowContentContext = {
-	command: Command;
-	actions: Actions;
+	command: CommandV1;
+	actions: ActionsV1;
 };
 const ShowContentContext = createContext<ShowContentContext>(
 	{} as ShowContentContext,
@@ -27,7 +27,7 @@ function useShowContent() {
 }
 
 function Provider(props: React.PropsWithChildren) {
-	const contextCommand = Command.scope();
+	const contextCommand = CommandV1.scope();
 	const contextActions = contextCommand.getActionsProxy();
 
 	return (
@@ -109,7 +109,7 @@ function ShowCongratulation() {
 	);
 }
 
-export const ShowContent = {
+export const ShowContentV1 = {
 	Provider,
 	Container,
 	Controls,

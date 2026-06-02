@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { twc } from "react-twc"
-import { actions, command } from "#/lib/command"
+import { actionsV1, commandV1 } from "#/lib/command/v1"
 
 const Container = twc.div`w-auto inline-flex flex-col gap-2 border-2 border-gray-200 p-4 rounded`
 
@@ -10,19 +10,19 @@ const Button = twc.button`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue
 
 function Increment() {
     return (
-        <Button type="button" onClick={() => actions.counter.increment()}>Increment</Button>
+        <Button type="button" onClick={() => actionsV1.counter.increment()}>Increment</Button>
     )
 }
 
 function Decrement() {
     return (
-        <Button type="button" onClick={() => actions.counter.decrement()}>Decrement</Button>
+        <Button type="button" onClick={() => actionsV1.counter.decrement()}>Decrement</Button>
     )
 }
 
 function Reset() {
     return (
-        <Button type="button" onClick={() => actions.counter.reset()}>Reset</Button>
+        <Button type="button" onClick={() => actionsV1.counter.reset()}>Reset</Button>
     )
 }
 
@@ -45,9 +45,9 @@ function Preview() {
     }, [])
 
     useEffect(() => {
-        const dispose1 = command.handle("counter.increment", increment)
-        const dispose2 = command.handle("counter.decrement", decrement)
-        const dispose3 = command.handle("counter.reset", reset)
+        const dispose1 = commandV1.handle("counter.increment", increment)
+        const dispose2 = commandV1.handle("counter.decrement", decrement)
+        const dispose3 = commandV1.handle("counter.reset", reset)
 
         return () => {
             dispose1()
@@ -61,7 +61,7 @@ function Preview() {
     )
 }
 
-export const Counter = {
+export const CounterV1 = {
     Container,
     Controls,
     Increment,

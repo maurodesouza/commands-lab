@@ -1,5 +1,5 @@
 import { dev } from "#/utils/dev";
-import type { TransitionKey, TransitionStore } from "./transitions-store";
+import type { TransitionKeyV1, TransitionStoreV1 } from "./transitions-store";
 
 type Return<T> = [T, undefined] | [undefined, Error];
 
@@ -10,17 +10,17 @@ export type Handler<TPayload = unknown, TResult = unknown> = (
 export type Dispose = () => void;
 
 export type SequenceConfig = {
-	transition?: TransitionKey;
+	transition?: TransitionKeyV1;
 };
 
 export type DispatchConfig = {
-	transition?: TransitionKey;
+	transition?: TransitionKeyV1;
 };
 
-export class CommandBus {
+export class CommandBusV1 {
 	private handlers: Map<string, Handler> = new Map();
 
-	constructor(private readonly transition: TransitionStore) {}
+	constructor(private readonly transition: TransitionStoreV1) {}
 
 	handle<TPayload = unknown, TResult = unknown>(
 		command: string,
