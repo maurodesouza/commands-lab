@@ -8,6 +8,10 @@ export interface Actions {
         decrement: () => void;
         reset: () => void;
     };
+
+    content: {
+        show: (content: string) => void;
+    }
 }
 
 export class Command {
