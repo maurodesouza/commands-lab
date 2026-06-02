@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Async } from "#/components/async";
 import { Counter } from "#/components/counter";
 import { ShowContent } from "#/components/show-content";
 
@@ -53,6 +54,12 @@ function Home() {
 					</ShowContent.Container>
 				</ShowContent.Provider>
 			</div>
+
+			<Async.Container>
+				<Async.Execute />
+				<Async.Handler />
+				<Async.Preview />
+			</Async.Container>
 		</div>
 	);
 }
