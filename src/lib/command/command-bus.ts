@@ -20,16 +20,22 @@ export type DispatchConfig = {
 export class CommandBus {
 	private handlers: Map<string, Handler> = new Map();
 
-    constructor(private readonly transition: TransitionStore) {
-    }
+	constructor(private readonly transition: TransitionStore) {}
 
-	handle<TPayload = unknown, TResult = unknown>(command: string, handler: Handler<TPayload, TResult>): Dispose {
-        if(this.handlers.has(command)) {
-            dev.run(() => console.error(`[command]: already exist a handle registered for ${command}`))
-            return () => null
-        }
+	handle<TPayload = unknown, TResult = unknown>(
+		command: string,
+		handler: Handler<TPayload, TResult>,
+	): Dispose {
+		if (this.handlers.has(command)) {
+			dev.run(() =>
+				console.error(
+					`[command]: already exist a handle registered for ${command}`,
+				),
+			);
+			return () => null;
+		}
 
-        this.handlers.set(command, handler as Handler)
+		this.handlers.set(command, handler as Handler);
 
 		return () => this.dispose(command);
 	}
@@ -46,20 +52,19 @@ export class CommandBus {
 
 		const handler = this.handlers.get(command);
 		if (!handler) {
-            const message = `[command]: no handler registered for ${command}`;
-            dev.run(() => console.error(message));
-            return [undefined, new Error(message)];
-        };
+			const message = `[command]: no handler registered for ${command}`;
+			dev.run(() => console.error(message));
+			return [undefined, new Error(message)];
+		}
 
 		try {
-			return await handler(payload) as Return<TResult>;
+			return (await handler(payload)) as Return<TResult>;
 		} finally {
 			this.transition.done(transitionKey);
 		}
 	}
 
 	dispose(command: string): void {
-        this.handlers.delete(command);
+		this.handlers.delete(command);
 	}
 }
-
