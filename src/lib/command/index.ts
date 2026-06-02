@@ -10,7 +10,7 @@ export interface Actions {
     };
 }
 
-class Command {
+export class Command {
     private $scope?: string;
 
     private $commandBus: CommandBus;
