@@ -31,7 +31,7 @@ class Command {
         return this.$commandBus.dispatch<TPayload>(this.buildKey(command), payload, config);
     }
 
-    getActionsProxy(argPath?: string[]): unknown {
+    getActionsProxy(argPath?: string[]): Actions {
         const path = argPath ?? (this.$scope ? [this.$scope] : []);
         const self = this
 
@@ -44,7 +44,7 @@ class Command {
                 const commandName = path.join(".");
                 return self.$commandBus.dispatch(commandName, args[0], args[1] as DispatchConfig);
             },
-        });
+        }) as unknown as Actions;
     }
 
     private buildKey(command: string) {
@@ -62,4 +62,4 @@ class Command {
 
 export const command = new Command();
 
-export const actions = command.getActionsProxy() as Actions;
+export const actions = command.getActionsProxy();
