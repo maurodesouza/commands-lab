@@ -1,59 +1,82 @@
 type Transition = {
-    abort: () => void;
-}
+	abort: () => void;
+};
 
-export type TransitionKey = unknown | unknown[]
+export type TransitionKey = unknown | unknown[];
 
 export type TransitionConfig = {
-    transition: TransitionKey;
-}   
+	transition: TransitionKey;
+};
 
 export class TransitionStore {
-    private static instance: TransitionStore;
-    transitions: Map<string, Transition> = new Map();
+	private static instance: TransitionStore;
 
+	private observers = new Set<() => void>();
+	transitions: Map<string, Transition> = new Map();
 
-    private constructor() {}
+	private constructor() {}
 
-    start(key: TransitionKey) {
-        const serializedKey = TransitionStore.serializeKey(key);
+	start(key: TransitionKey) {
+		const serializedKey = TransitionStore.serializeKey(key);
 
-        if (this.transitions.has(serializedKey)) {
-            this.abort(key);
-        }
+		if (this.transitions.has(serializedKey)) {
+			this.abort(key);
+		}
 
-        const controller = new AbortController();
+		const controller = new AbortController();
 
-        this.transitions.set(serializedKey, {
-            abort: () => controller.abort()
-        });
+		this.transitions.set(serializedKey, {
+			abort: () => controller.abort(),
+		});
 
-        return {
-            signal: controller.signal,
-        }
-    }
+		this.notify();
 
-    abort(key: TransitionKey) {
-        const serializedKey = TransitionStore.serializeKey(key);
-        const transition = this.transitions.get(serializedKey);
+		return {
+			signal: controller.signal,
+		};
+	}
 
-        if (transition) transition.abort();
-    }
+	abort(key: TransitionKey) {
+		const serializedKey = TransitionStore.serializeKey(key);
+		const transition = this.transitions.get(serializedKey);
 
-    done(key: TransitionKey) {
-        const serializedKey = TransitionStore.serializeKey(key);
-        this.transitions.delete(serializedKey);
-    }
+		if (transition) transition.abort();
+	}
 
-    static serializeKey(key: TransitionKey) {
-        return JSON.stringify(key);
-    }
+	done(key: TransitionKey) {
+		const serializedKey = TransitionStore.serializeKey(key);
+		this.transitions.delete(serializedKey);
+		this.notify();
+	}
 
-    static getInstance() {
-        if (!TransitionStore.instance) {
-            TransitionStore.instance = new TransitionStore();
-        }
+	subscribe(observer: () => void) {
+		this.observers.add(observer);
 
-        return TransitionStore.instance;
-    }
+		return () => {
+			this.observers.delete(observer);
+		};
+	}
+
+	isExecuting(key: string) {
+		const serializedKey = TransitionStore.serializeKey(key);
+		return !!this.transitions.get(serializedKey);
+	}
+
+	private notify() {
+		for (const observer of this.observers) {
+			observer();
+		}
+	}
+
+	static serializeKey(key: TransitionKey) {
+		return JSON.stringify(key);
+	}
+
+	static getInstance() {
+		if (!TransitionStore.instance) {
+			TransitionStore.instance = new TransitionStore();
+		}
+
+		return TransitionStore.instance;
+	}
 }
