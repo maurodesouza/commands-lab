@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { twc } from "react-twc"
 import { actions, command } from "#/lib/command"
 
-const Container = twc.div`w-auto inline-flex flex-col gap-2`
+const Container = twc.div`w-auto inline-flex flex-col gap-2 border-2 border-gray-200 p-4 rounded`
 
 const Controls = twc.div`flex gap-2 items-center`
 
