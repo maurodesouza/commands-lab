@@ -1,9 +1,5 @@
 import { Subject } from "./subject";
-
-type Instance = {
-	id: string;
-	label?: string;
-};
+import type { Instance } from "./types";
 
 export class InstanceRegistry extends Subject {
 	private static instance: InstanceRegistry;

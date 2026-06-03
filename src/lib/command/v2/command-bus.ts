@@ -1,15 +1,6 @@
 import { dev } from "#/utils/dev";
-import type { TransitionKeyV2, TransitionStoreV2 } from "./transitions-store";
-
-export type Handler<TPayload = unknown, TResult = void> = (
-	payload: TPayload,
-) => Promise<TResult>;
-
-export type Dispose = () => void;
-
-export type DispatchConfig = {
-	transition?: TransitionKeyV2;
-};
+import type { TransitionStoreV2 } from "./transitions-store";
+import type { DispatchConfig, Dispose, Handler } from "./types";
 
 export class CommandBusV2 {
 	private handlers: Map<string, Handler> = new Map();

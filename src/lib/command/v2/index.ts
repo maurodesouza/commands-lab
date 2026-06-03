@@ -1,85 +1,27 @@
-import type {
-	ActionPaths,
-	DeepKeys,
-	PathValue,
-	PayloadFromAction,
-	ReturnFromAction,
-} from "#/types/helpers";
-import type { DispatchConfig, Handler } from "./command-bus";
+import type { DeepKeys } from "#/types/helpers";
 import { CommandBusV2 } from "./command-bus";
 import { InstanceRegistry } from "./instance-registry";
 import { TransitionStoreV2 } from "./transitions-store";
+import type {
+	ActionPath,
+	ActionPayload,
+	ActionReturn,
+	ActionsV2,
+	CommandMeta,
+	Config,
+	Handler,
+	ScopedCommands,
+	UnscopedCommands,
+} from "./types";
 
-type Config = DispatchConfig & {
-	instanceId: string;
-};
-
-export type Action<TPayload = undefined, TResult = void> = [TPayload] extends [
-	undefined,
-]
-	? (payload?: TPayload, config?: DispatchConfig) => Promise<TResult>
-	: (payload: TPayload, config?: DispatchConfig) => Promise<TResult>;
-
-export type ScopedAction<TPayload = undefined, TResult = void> = [
-	TPayload,
-] extends [undefined]
-	? (payload: undefined, config: Config) => Promise<TResult>
-	: (payload: TPayload, config: Config) => Promise<TResult>;
-
-type Test = PathValue<ActionsV2, "content.show">;
-export type TestPayload = PayloadFromAction<Test>;
-
-export interface ActionsV2 {
-	counter: {
-		increment: Action;
-		decrement: Action;
-		reset: Action;
-	};
-
-	content: {
-		show: ScopedAction<string>;
-	};
-
-	async: {
-		execute: Action;
-	};
-}
-
-type ActionPayload<TCommand extends ActionPaths<ActionsV2>> = PayloadFromAction<
-	PathValue<ActionsV2, TCommand>
->;
-
-type ActionReturn<TCommand extends ActionPaths<ActionsV2>> = ReturnFromAction<
-	PathValue<ActionsV2, TCommand>
->;
-
-export type IsScopedCommand<TCommand extends ActionPaths<ActionsV2>> =
-	PathValue<ActionsV2, TCommand> extends (
-		payload: any,
-		config: Config,
-	) => Promise<any>
-		? true
-		: false;
-
-export type HandleConfig<TCommand extends ActionPaths<ActionsV2>> =
-	IsScopedCommand<TCommand> extends true
-		? { instanceId: string; meta?: { label: string } }
-		: { instanceId?: string; meta?: { label: string } };
-
-type SecondArg<T> = T extends (a: any, b: infer B) => any ? B : never;
-
-type ScopedCommands = {
-	[K in ActionPaths<ActionsV2>]: SecondArg<
-		PathValue<ActionsV2, K>
-	> extends Config
-		? K
-		: never;
-}[ActionPaths<ActionsV2>];
-
-export type UnscopedCommands = Exclude<ActionPaths<ActionsV2>, ScopedCommands>;
-
-export type TestScoped = ScopedCommands;
-export type TestUnscoped = UnscopedCommands;
+export type {
+	Action,
+	ActionsV2,
+	HandleConfig,
+	IsScopedCommand,
+	ScopedAction,
+	UnscopedCommands,
+} from "./types";
 
 export class CommandV2 {
 	private $commandBus: CommandBusV2;
@@ -97,22 +39,22 @@ export class CommandV2 {
 		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
 		config: {
 			instanceId: string;
-			meta?: { label: string };
+			meta?: CommandMeta;
 		},
 	): () => void;
 	handle<TCommand extends UnscopedCommands>(
 		command: TCommand,
 		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
 		config?: {
-			meta?: { label: string };
+			meta?: CommandMeta;
 		},
 	): () => void;
-	handle<TCommand extends ActionPaths<ActionsV2>>(
+	handle<TCommand extends ActionPath>(
 		command: TCommand,
 		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
 		config?: {
 			instanceId?: string;
-			meta?: { label: string };
+			meta?: CommandMeta;
 		},
 	) {
 		const result = this.parseCommand(command, config?.instanceId);
@@ -137,7 +79,7 @@ export class CommandV2 {
 		};
 	}
 
-	dispatch<TCommand extends ActionPaths<ActionsV2>>(
+	dispatch<TCommand extends ActionPath>(
 		command: TCommand,
 		payload?: ActionPayload<TCommand>,
 		config?: Config,
@@ -158,18 +100,14 @@ export class CommandV2 {
 				return self.getActionsProxy([...path, prop]);
 			},
 
-			apply(
-				_target,
-				_thisArg,
-				args: [ActionPayload<ActionPaths<ActionsV2>>, Config?],
-			) {
-				const commandName = path.join(".") as ActionPaths<ActionsV2>;
+			apply(_target, _thisArg, args: [ActionPayload<ActionPath>, Config?]) {
+				const commandName = path.join(".") as ActionPath;
 				return self.dispatch(commandName, args[0], args[1]);
 			},
 		}) as unknown as ActionsV2;
 	}
 
-	private parseCommand(command: ActionPaths<ActionsV2>, instanceId?: string) {
+	private parseCommand(command: ActionPath, instanceId?: string) {
 		const parts = command.split(".");
 		const hasDomain = parts.length > 1;
 

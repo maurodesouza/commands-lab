@@ -1,6 +1,5 @@
 import { Subject } from "./subject";
-
-export type TransitionKeyV2 = unknown | unknown[];
+import type { TransitionKeyV2 } from "./types";
 
 export class TransitionStoreV2 extends Subject {
 	private static instance: TransitionStoreV2;
