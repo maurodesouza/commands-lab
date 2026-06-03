@@ -37,17 +37,14 @@ function Preview() {
 
 	const increment = useCallback(async () => {
 		setCounter((c) => c + 1);
-		return [true, undefined] as [boolean, undefined];
 	}, []);
 
 	const decrement = useCallback(async () => {
 		setCounter((c) => c - 1);
-		return [true, undefined] as [boolean, undefined];
 	}, []);
 
 	const reset = useCallback(async () => {
 		setCounter(0);
-		return [true, undefined] as [boolean, undefined];
 	}, []);
 
 	useEffect(() => {

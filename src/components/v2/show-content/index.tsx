@@ -58,8 +58,6 @@ function Preview() {
 
 	const show = useCallback(async (content: string) => {
 		setContent(content);
-
-		return [true, undefined] as [boolean, undefined];
 	}, []);
 
 	useEffect(() => {
