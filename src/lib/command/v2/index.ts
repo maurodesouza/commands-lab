@@ -1,3 +1,4 @@
+import type { DeepKeyPaths, DeepKeys } from "#/types/helpers";
 import type { DispatchConfig, Handler, Return } from "./command-bus";
 import { CommandBusV2 } from "./command-bus";
 import { InstanceRegistry } from "./instance-registry";
@@ -53,7 +54,7 @@ export class CommandV2 {
 	 * obligation determined by how the command is dispatched.
 	 */
 	handle<TPayload = unknown, TResult = unknown>(
-		command: string,
+		command: DeepKeyPaths<ActionsV2>,
 		handler: Handler<TPayload, TResult>,
 		config?: { instanceId: string; meta?: { label: string } },
 	) {
@@ -77,7 +78,7 @@ export class CommandV2 {
 	}
 
 	dispatch<TPayload = unknown>(
-		command: string,
+		command: DeepKeyPaths<ActionsV2>,
 		payload?: TPayload,
 		config?: Config,
 	) {
@@ -85,22 +86,22 @@ export class CommandV2 {
 		return this.$commandBus.dispatch<TPayload>(result.key, payload, config);
 	}
 
-	getActionsProxy(path: string[] = []): ActionsV2 {
+	getActionsProxy(path: DeepKeys<ActionsV2>[] = []): ActionsV2 {
 		const self = this;
 
 		return new Proxy(() => {}, {
-			get(_target, prop: string) {
+			get(_target, prop: DeepKeys<ActionsV2>) {
 				return self.getActionsProxy([...path, prop]);
 			},
 
 			apply(_target, _thisArg, args: [unknown, Config?]) {
-				const commandName = path.join(".");
+				const commandName = path.join(".") as DeepKeyPaths<ActionsV2>;
 				return self.dispatch(commandName, args[0], args[1]);
 			},
 		}) as unknown as ActionsV2;
 	}
 
-	private parseCommand(command: string, instanceId?: string) {
+	private parseCommand(command: DeepKeyPaths<ActionsV2>, instanceId?: string) {
 		const parts = command.split(".");
 		const hasDomain = parts.length > 1;
 
