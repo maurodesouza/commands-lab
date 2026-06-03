@@ -1,19 +1,19 @@
-import type { DispatchConfig, Handler } from "./command-bus";
+import type { DispatchConfig, Handler, Return } from "./command-bus";
 import { CommandBusV2 } from "./command-bus";
-import { ScopeRegistry } from "./scope-registry";
+import { InstanceRegistry } from "./instance-registry";
 import { TransitionStoreV2 } from "./transitions-store";
 
 type Config = DispatchConfig & {
-	target: string;
+	instanceId: string;
 };
 
-export type Action<TPayload = void> = [TPayload] extends [void]
-	? (payload?: TPayload, config?: DispatchConfig) => void
-	: (payload: TPayload, config?: DispatchConfig) => void;
+export type Action<TPayload = undefined> = [TPayload] extends [undefined]
+	? (payload?: TPayload, config?: DispatchConfig) => Promise<Return>
+	: (payload: TPayload, config?: DispatchConfig) => Promise<Return>;
 
-export type ScopedAction<TPayload = void> = [TPayload] extends [void]
-	? (payload: undefined, config: Config) => void
-	: (payload: TPayload, config: Config) => void;
+export type ScopedAction<TPayload = undefined> = [TPayload] extends [undefined]
+	? (payload: undefined, config: Config) => Promise<Return>
+	: (payload: TPayload, config: Config) => Promise<Return>;
 
 export interface ActionsV2 {
 	counter: {
@@ -34,25 +34,35 @@ export interface ActionsV2 {
 export class CommandV2 {
 	private $commandBus: CommandBusV2;
 	private $transitions: TransitionStoreV2;
-	private $scopeRegistry: ScopeRegistry;
+	private $instanceRegistry: InstanceRegistry;
 
 	constructor() {
 		this.$transitions = TransitionStoreV2.getInstance();
 		this.$commandBus = new CommandBusV2(this.$transitions);
-		this.$scopeRegistry = ScopeRegistry.getInstance();
+		this.$instanceRegistry = InstanceRegistry.getInstance();
 	}
 
+	/**
+	 * Registers a handler for a command.
+	 *
+	 * Runtime contract: if a command is dispatched with an `instanceId`, the
+	 * handler MUST be registered with the same `instanceId`. The registry uses
+	 * `instanceId` to build the internal key (`${instanceId}:${domain}.${path}`);
+	 * a mismatch between registration and dispatch keys results in a silent no-op.
+	 * This is not enforced at the type level — passing `instanceId` is a runtime
+	 * obligation determined by how the command is dispatched.
+	 */
 	handle<TPayload = unknown, TResult = unknown>(
 		command: string,
 		handler: Handler<TPayload, TResult>,
-		config?: { target: string; meta?: { label: string } },
+		config?: { instanceId: string; meta?: { label: string } },
 	) {
-		const result = this.parseCommand(command, config?.target);
-		const { domain, key, target } = result;
+		const result = this.parseCommand(command, config?.instanceId);
+		const { domain, key, instanceId } = result;
 
-		if (domain && target) {
-			this.$scopeRegistry.add(domain, {
-				id: target,
+		if (domain && instanceId) {
+			this.$instanceRegistry.add(domain, {
+				id: instanceId,
 				label: config?.meta?.label,
 			});
 		}
@@ -60,7 +70,8 @@ export class CommandV2 {
 		const dispose = this.$commandBus.handle<TPayload, TResult>(key, handler);
 
 		return () => {
-			if (domain && target) this.$scopeRegistry.remove(domain, target);
+			if (domain && instanceId)
+				this.$instanceRegistry.remove(domain, instanceId);
 			dispose();
 		};
 	}
@@ -70,12 +81,8 @@ export class CommandV2 {
 		payload?: TPayload,
 		config?: Config,
 	) {
-		const result = this.parseCommand(command, config?.target);
+		const result = this.parseCommand(command, config?.instanceId);
 		return this.$commandBus.dispatch<TPayload>(result.key, payload, config);
-	}
-
-	registers(domain: string) {
-		return this.$scopeRegistry.getInstances(domain);
 	}
 
 	getActionsProxy(path: string[] = []): ActionsV2 {
@@ -93,19 +100,19 @@ export class CommandV2 {
 		}) as unknown as ActionsV2;
 	}
 
-	private parseCommand(command: string, target?: string) {
+	private parseCommand(command: string, instanceId?: string) {
 		const parts = command.split(".");
 		const hasDomain = parts.length > 1;
 
 		if (!hasDomain) {
-			return { domain: undefined, path: command, target, key: command };
+			return { domain: undefined, instanceId, key: command };
 		}
 
 		const domain = parts[0];
 		const path = parts.slice(1).join(".");
-		const key = target ? `${target}:${domain}.${path}` : command;
+		const key = instanceId ? `${instanceId}:${domain}.${path}` : command;
 
-		return { domain, path, target, key };
+		return { domain, instanceId, key };
 	}
 }
 

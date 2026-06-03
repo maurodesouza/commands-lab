@@ -5,10 +5,10 @@ type Instance = {
 	label?: string;
 };
 
-export class ScopeRegistry extends Subject {
-	private static instance: ScopeRegistry;
+export class InstanceRegistry extends Subject {
+	private static instance: InstanceRegistry;
 	private domains: Map<string, Map<string, Instance>> = new Map();
-	private caches: Map<string, Instance[]> = new Map();
+	private instancesCache: Map<string, readonly Instance[]> = new Map();
 
 	private constructor() {
 		super();
@@ -20,16 +20,16 @@ export class ScopeRegistry extends Subject {
 		}
 
 		this.domains.get(domain)?.set(instance.id, instance);
-		this.caches.delete(domain);
+		this.instancesCache.delete(domain);
 		this.notify();
 	}
 
-	getInstances(domain: string): Instance[] {
-		const cached = this.caches.get(domain);
+	getInstances(domain: string): readonly Instance[] {
+		const cached = this.instancesCache.get(domain);
 		if (cached) return cached;
 
 		const fresh = Array.from(this.domains.get(domain)?.values() ?? []);
-		this.caches.set(domain, fresh);
+		this.instancesCache.set(domain, fresh);
 		return fresh;
 	}
 
@@ -37,15 +37,15 @@ export class ScopeRegistry extends Subject {
 		if (!this.domains.has(domain)) return;
 
 		this.domains.get(domain)?.delete(instanceId);
-		this.caches.delete(domain);
+		this.instancesCache.delete(domain);
 		this.notify();
 	}
 
 	static getInstance() {
-		if (!ScopeRegistry.instance) {
-			ScopeRegistry.instance = new ScopeRegistry();
+		if (!InstanceRegistry.instance) {
+			InstanceRegistry.instance = new InstanceRegistry();
 		}
 
-		return ScopeRegistry.instance;
+		return InstanceRegistry.instance;
 	}
 }

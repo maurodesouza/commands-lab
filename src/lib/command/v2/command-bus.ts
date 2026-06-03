@@ -1,17 +1,13 @@
 import { dev } from "#/utils/dev";
 import type { TransitionKeyV2, TransitionStoreV2 } from "./transitions-store";
 
-type Return<T> = [T, undefined] | [undefined, Error];
+export type Return<T = unknown> = [T, undefined] | [undefined, Error];
 
 export type Handler<TPayload = unknown, TResult = unknown> = (
 	payload: TPayload,
 ) => Promise<Return<TResult>>;
 
 export type Dispose = () => void;
-
-export type SequenceConfig = {
-	transition?: TransitionKeyV2;
-};
 
 export type DispatchConfig = {
 	transition?: TransitionKeyV2;
@@ -47,15 +43,15 @@ export class CommandBusV2 {
 	): Promise<Return<TResult>> {
 		dev.run(() => console.info(`[command dispatched]: ${command}`, payload));
 
-		const transitionKey = config?.transition ? config.transition : [command];
-		this.transition.start(transitionKey);
-
 		const handler = this.handlers.get(command);
 		if (!handler) {
 			const message = `[command]: no handler registered for ${command}`;
 			dev.run(() => console.error(message));
 			return [undefined, new Error(message)];
 		}
+
+		const transitionKey = config?.transition ? config.transition : [command];
+		this.transition.start(transitionKey);
 
 		try {
 			return (await handler(payload)) as Return<TResult>;

@@ -3,6 +3,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { twc } from "react-twc";
@@ -10,7 +11,7 @@ import { actionsV2, commandV2 } from "#/lib/command/v2";
 
 type ShowContentContext = {
 	meta: {
-		target: string;
+		instanceId: string;
 		label: string;
 	};
 };
@@ -32,10 +33,14 @@ function useShowContent() {
 function Provider(
 	props: React.PropsWithChildren<{ id: string; label: string }>,
 ) {
+	const { id, label } = props;
+	const value = useMemo(
+		() => ({ meta: { instanceId: id, label } }),
+		[id, label],
+	);
+
 	return (
-		<ShowContentContext.Provider
-			value={{ meta: { target: props.id, label: props.label } }}
-		>
+		<ShowContentContext.Provider value={value}>
 			{props.children}
 		</ShowContentContext.Provider>
 	);
@@ -59,7 +64,7 @@ function Preview() {
 
 	useEffect(() => {
 		const dispose = commandV2.handle("content.show", show, {
-			target: meta.target,
+			instanceId: meta.instanceId,
 			meta: { label: meta.label },
 		});
 
@@ -79,7 +84,7 @@ function ShowGreeting() {
 			type="button"
 			onClick={() =>
 				actionsV2.content.show("Hello", {
-					target: meta.target,
+					instanceId: meta.instanceId,
 				})
 			}
 		>
@@ -96,7 +101,7 @@ function ShowFarewell() {
 			type="button"
 			onClick={() =>
 				actionsV2.content.show("Goodbye", {
-					target: meta.target,
+					instanceId: meta.instanceId,
 				})
 			}
 		>
@@ -113,7 +118,7 @@ function ShowThanks() {
 			type="button"
 			onClick={() =>
 				actionsV2.content.show("Thank you", {
-					target: meta.target,
+					instanceId: meta.instanceId,
 				})
 			}
 		>
@@ -130,7 +135,7 @@ function ShowCongratulation() {
 			type="button"
 			onClick={() =>
 				actionsV2.content.show("Congratulations!", {
-					target: meta.target,
+					instanceId: meta.instanceId,
 				})
 			}
 		>
