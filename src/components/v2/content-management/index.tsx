@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { twc } from "react-twc";
-import { actionsV2 } from "#/lib/command/v2";
 import { useGetInstances } from "#/hooks/v2/use-get-instances";
+import { actionsV2 } from "#/lib/command/v2";
 
 const Container = twc.div`w-auto inline-flex flex-col gap-2 border-2 border-gray-200 p-4 rounded`;
 
@@ -16,7 +16,13 @@ type Instance = {
 	label?: string;
 };
 
-const CONTENT_OPTIONS = ["", "Hello", "Goodbye", "Thank you", "Congratulations!"];
+const CONTENT_OPTIONS = [
+	"",
+	"Hello",
+	"Goodbye",
+	"Thank you",
+	"Congratulations!",
+];
 
 export function ContentManagement() {
 	const instances = useGetInstances("content");
@@ -28,7 +34,7 @@ export function ContentManagement() {
 		if (!curInstance) return;
 
 		actionsV2.content.show(content, {
-			target: curInstance.id,
+			instanceId: curInstance.id,
 		});
 	}
 
@@ -51,10 +57,7 @@ export function ContentManagement() {
 					))}
 				</Select>
 
-				<Select
-					value={content}
-					onChange={(e) => setContent(e.target.value)}
-				>
+				<Select value={content} onChange={(e) => setContent(e.target.value)}>
 					{CONTENT_OPTIONS.map((item) => (
 						<option key={item} value={item}>
 							{item || "Select content..."}
@@ -62,7 +65,11 @@ export function ContentManagement() {
 					))}
 				</Select>
 
-				<Button disabled={!curInstance || !content} type="button" onClick={onClick}>
+				<Button
+					disabled={!curInstance || !content}
+					type="button"
+					onClick={onClick}
+				>
 					Show Outside
 				</Button>
 			</Controls>
