@@ -1,3 +1,11 @@
+export type ActionPaths<T> = T extends (...args: any[]) => any
+	? never
+	: {
+			[K in keyof T & string]: T[K] extends (...args: any[]) => any
+				? K
+				: `${K}.${ActionPaths<T[K]>}`;
+		}[keyof T & string];
+
 export type DeepKeyPaths<T> = T extends object
 	? {
 			[K in keyof T & string]: K | `${K}.${DeepKeyPaths<T[K]>}`;
