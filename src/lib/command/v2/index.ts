@@ -1,5 +1,5 @@
 import type {
-	DeepKeyPaths,
+	ActionPaths,
 	DeepKeys,
 	PathValue,
 	PayloadFromAction,
@@ -45,12 +45,41 @@ export interface ActionsV2 {
 	};
 }
 
-type ActionPayload<TCommand extends DeepKeyPaths<ActionsV2>> =
-	PayloadFromAction<PathValue<ActionsV2, TCommand>>;
-
-type ActionReturn<TCommand extends DeepKeyPaths<ActionsV2>> = ReturnFromAction<
+type ActionPayload<TCommand extends ActionPaths<ActionsV2>> = PayloadFromAction<
 	PathValue<ActionsV2, TCommand>
 >;
+
+type ActionReturn<TCommand extends ActionPaths<ActionsV2>> = ReturnFromAction<
+	PathValue<ActionsV2, TCommand>
+>;
+
+export type IsScopedCommand<TCommand extends ActionPaths<ActionsV2>> =
+	PathValue<ActionsV2, TCommand> extends (
+		payload: any,
+		config: Config,
+	) => Promise<any>
+		? true
+		: false;
+
+export type HandleConfig<TCommand extends ActionPaths<ActionsV2>> =
+	IsScopedCommand<TCommand> extends true
+		? { instanceId: string; meta?: { label: string } }
+		: { instanceId?: string; meta?: { label: string } };
+
+type SecondArg<T> = T extends (a: any, b: infer B) => any ? B : never;
+
+type ScopedCommands = {
+	[K in ActionPaths<ActionsV2>]: SecondArg<
+		PathValue<ActionsV2, K>
+	> extends Config
+		? K
+		: never;
+}[ActionPaths<ActionsV2>];
+
+export type UnscopedCommands = Exclude<ActionPaths<ActionsV2>, ScopedCommands>;
+
+export type TestScoped = ScopedCommands;
+export type TestUnscoped = UnscopedCommands;
 
 export class CommandV2 {
 	private $commandBus: CommandBusV2;
@@ -63,20 +92,28 @@ export class CommandV2 {
 		this.$instanceRegistry = InstanceRegistry.getInstance();
 	}
 
-	/**
-	 * Registers a handler for a command.
-	 *
-	 * Runtime contract: if a command is dispatched with an `instanceId`, the
-	 * handler MUST be registered with the same `instanceId`. The registry uses
-	 * `instanceId` to build the internal key (`${instanceId}:${domain}.${path}`);
-	 * a mismatch between registration and dispatch keys results in a silent no-op.
-	 * This is not enforced at the type level — passing `instanceId` is a runtime
-	 * obligation determined by how the command is dispatched.
-	 */
-	handle<TCommand extends DeepKeyPaths<ActionsV2>>(
+	handle<TCommand extends ScopedCommands>(
 		command: TCommand,
 		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
-		config?: { instanceId: string; meta?: { label: string } },
+		config: {
+			instanceId: string;
+			meta?: { label: string };
+		},
+	): () => void;
+	handle<TCommand extends UnscopedCommands>(
+		command: TCommand,
+		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
+		config?: {
+			meta?: { label: string };
+		},
+	): () => void;
+	handle<TCommand extends ActionPaths<ActionsV2>>(
+		command: TCommand,
+		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
+		config?: {
+			instanceId?: string;
+			meta?: { label: string };
+		},
 	) {
 		const result = this.parseCommand(command, config?.instanceId);
 		const { domain, key, instanceId } = result;
@@ -100,7 +137,7 @@ export class CommandV2 {
 		};
 	}
 
-	dispatch<TCommand extends DeepKeyPaths<ActionsV2>>(
+	dispatch<TCommand extends ActionPaths<ActionsV2>>(
 		command: TCommand,
 		payload?: ActionPayload<TCommand>,
 		config?: Config,
@@ -124,15 +161,15 @@ export class CommandV2 {
 			apply(
 				_target,
 				_thisArg,
-				args: [ActionPayload<DeepKeyPaths<ActionsV2>>, Config?],
+				args: [ActionPayload<ActionPaths<ActionsV2>>, Config?],
 			) {
-				const commandName = path.join(".") as DeepKeyPaths<ActionsV2>;
+				const commandName = path.join(".") as ActionPaths<ActionsV2>;
 				return self.dispatch(commandName, args[0], args[1]);
 			},
 		}) as unknown as ActionsV2;
 	}
 
-	private parseCommand(command: DeepKeyPaths<ActionsV2>, instanceId?: string) {
+	private parseCommand(command: ActionPaths<ActionsV2>, instanceId?: string) {
 		const parts = command.split(".");
 		const hasDomain = parts.length > 1;
 
