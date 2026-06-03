@@ -8,7 +8,7 @@ This repository is a personal laboratory to experiment with a unified, framework
 
 - **Single entrypoint**: call actions as `actions.domain.action()` or `actions.domain.subdomain.action()`.
 - **Traceability**: know when an action starts/finishes and whether it’s running (transitions/executing state).
-- **Result retrieval**: actions return `[result, error]` tuples, enabling ergonomic async calling.
+- **Result retrieval**: actions can return any value from the handler.
 - **Fast dispatch path**: support `actions.dispatch(command, payload, config?)` to plug into SSE/realtime easily.
 - **Context support**: isolate multiple concurrent “contexts” (e.g., two pipeline editors) so actions for context A don’t affect B, while still allowing global calls from anywhere.
 
