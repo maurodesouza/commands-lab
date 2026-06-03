@@ -1,11 +1,9 @@
 import { dev } from "#/utils/dev";
 import type { TransitionKeyV2, TransitionStoreV2 } from "./transitions-store";
 
-export type Return<T = unknown> = [T, undefined] | [undefined, Error];
-
-export type Handler<TPayload = unknown, TResult = unknown> = (
+export type Handler<TPayload = unknown, TResult = void> = (
 	payload: TPayload,
-) => Promise<Return<TResult>>;
+) => Promise<TResult>;
 
 export type Dispose = () => void;
 
@@ -18,7 +16,7 @@ export class CommandBusV2 {
 
 	constructor(private readonly transition: TransitionStoreV2) {}
 
-	handle<TPayload = unknown, TResult = unknown>(
+	handle<TPayload = unknown, TResult = void>(
 		command: string,
 		handler: Handler<TPayload, TResult>,
 	): Dispose {
@@ -36,25 +34,25 @@ export class CommandBusV2 {
 		return () => this.dispose(command);
 	}
 
-	async dispatch<TResult = unknown>(
+	async dispatch<TResult = void>(
 		command: string,
 		payload?: unknown,
 		config?: DispatchConfig,
-	): Promise<Return<TResult>> {
+	): Promise<TResult | undefined> {
 		dev.run(() => console.info(`[command dispatched]: ${command}`, payload));
 
 		const handler = this.handlers.get(command);
 		if (!handler) {
 			const message = `[command]: no handler registered for ${command}`;
 			dev.run(() => console.error(message));
-			return [undefined, new Error(message)];
+			return;
 		}
 
 		const transitionKey = config?.transition ? config.transition : [command];
 		this.transition.start(transitionKey);
 
 		try {
-			return (await handler(payload)) as Return<TResult>;
+			return (await handler(payload)) as TResult;
 		} finally {
 			this.transition.done(transitionKey);
 		}

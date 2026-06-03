@@ -1,5 +1,11 @@
-import type { DeepKeyPaths, DeepKeys } from "#/types/helpers";
-import type { DispatchConfig, Handler, Return } from "./command-bus";
+import type {
+	DeepKeyPaths,
+	DeepKeys,
+	PathValue,
+	PayloadFromAction,
+	ReturnFromAction,
+} from "#/types/helpers";
+import type { DispatchConfig, Handler } from "./command-bus";
 import { CommandBusV2 } from "./command-bus";
 import { InstanceRegistry } from "./instance-registry";
 import { TransitionStoreV2 } from "./transitions-store";
@@ -8,13 +14,20 @@ type Config = DispatchConfig & {
 	instanceId: string;
 };
 
-export type Action<TPayload = undefined> = [TPayload] extends [undefined]
-	? (payload?: TPayload, config?: DispatchConfig) => Promise<Return>
-	: (payload: TPayload, config?: DispatchConfig) => Promise<Return>;
+export type Action<TPayload = undefined, TResult = void> = [TPayload] extends [
+	undefined,
+]
+	? (payload?: TPayload, config?: DispatchConfig) => Promise<TResult>
+	: (payload: TPayload, config?: DispatchConfig) => Promise<TResult>;
 
-export type ScopedAction<TPayload = undefined> = [TPayload] extends [undefined]
-	? (payload: undefined, config: Config) => Promise<Return>
-	: (payload: TPayload, config: Config) => Promise<Return>;
+export type ScopedAction<TPayload = undefined, TResult = void> = [
+	TPayload,
+] extends [undefined]
+	? (payload: undefined, config: Config) => Promise<TResult>
+	: (payload: TPayload, config: Config) => Promise<TResult>;
+
+type Test = PathValue<ActionsV2, "content.show">;
+export type TestPayload = PayloadFromAction<Test>;
 
 export interface ActionsV2 {
 	counter: {
@@ -31,6 +44,13 @@ export interface ActionsV2 {
 		execute: Action;
 	};
 }
+
+type ActionPayload<TCommand extends DeepKeyPaths<ActionsV2>> =
+	PayloadFromAction<PathValue<ActionsV2, TCommand>>;
+
+type ActionReturn<TCommand extends DeepKeyPaths<ActionsV2>> = ReturnFromAction<
+	PathValue<ActionsV2, TCommand>
+>;
 
 export class CommandV2 {
 	private $commandBus: CommandBusV2;
@@ -53,9 +73,9 @@ export class CommandV2 {
 	 * This is not enforced at the type level — passing `instanceId` is a runtime
 	 * obligation determined by how the command is dispatched.
 	 */
-	handle<TPayload = unknown, TResult = unknown>(
-		command: DeepKeyPaths<ActionsV2>,
-		handler: Handler<TPayload, TResult>,
+	handle<TCommand extends DeepKeyPaths<ActionsV2>>(
+		command: TCommand,
+		handler: Handler<ActionPayload<TCommand>, ActionReturn<TCommand>>,
 		config?: { instanceId: string; meta?: { label: string } },
 	) {
 		const result = this.parseCommand(command, config?.instanceId);
@@ -68,7 +88,10 @@ export class CommandV2 {
 			});
 		}
 
-		const dispose = this.$commandBus.handle<TPayload, TResult>(key, handler);
+		const dispose = this.$commandBus.handle<
+			ActionPayload<TCommand>,
+			ActionReturn<TCommand>
+		>(key, handler);
 
 		return () => {
 			if (domain && instanceId)
@@ -77,13 +100,17 @@ export class CommandV2 {
 		};
 	}
 
-	dispatch<TPayload = unknown>(
-		command: DeepKeyPaths<ActionsV2>,
-		payload?: TPayload,
+	dispatch<TCommand extends DeepKeyPaths<ActionsV2>>(
+		command: TCommand,
+		payload?: ActionPayload<TCommand>,
 		config?: Config,
 	) {
 		const result = this.parseCommand(command, config?.instanceId);
-		return this.$commandBus.dispatch<TPayload>(result.key, payload, config);
+		return this.$commandBus.dispatch<ActionPayload<TCommand>>(
+			result.key,
+			payload,
+			config,
+		);
 	}
 
 	getActionsProxy(path: DeepKeys<ActionsV2>[] = []): ActionsV2 {
@@ -94,7 +121,11 @@ export class CommandV2 {
 				return self.getActionsProxy([...path, prop]);
 			},
 
-			apply(_target, _thisArg, args: [unknown, Config?]) {
+			apply(
+				_target,
+				_thisArg,
+				args: [ActionPayload<DeepKeyPaths<ActionsV2>>, Config?],
+			) {
 				const commandName = path.join(".") as DeepKeyPaths<ActionsV2>;
 				return self.dispatch(commandName, args[0], args[1]);
 			},
