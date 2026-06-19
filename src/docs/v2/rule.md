@@ -1,0 +1,232 @@
+---
+trigger: always_on
+description: Use this rule when implementing command-driven architecture in the application.
+---
+
+# Command Architecture Rule
+
+## Overview
+
+This project uses a **command-based pattern** to centralize all application actions behind a single `actions` object with nested domains and strong observability. The system is framework-agnostic and can be invoked from anywhere (React components, JS modules, stores, etc.).
+
+## Rule Scope
+
+This is the official and only allowed pattern for command-driven communication in the project.
+
+### Key Components
+
+1. **Command System** (`/src/lib/command/`)
+2. **Action Types** (`/src/lib/command/types.ts`)
+3. **Command Bus** (`/src/lib/command/command-bus.ts`)
+4. **Transitions Store** (`/src/lib/command/transitions-store.ts`)
+5. **Instance Registry** (`/src/lib/command/instance-registry.ts`)
+
+---
+
+## 1. Defining Actions
+
+Define the action surface with strong typing for payloads and returns:
+
+```typescript
+// /src/lib/command/types.ts
+export interface Actions {
+  counter: {
+    increment: Action;
+    decrement: Action;
+    reset: Action;
+  };
+
+  pipeline: {
+    nodes: {
+      add: ScopedAction<Node>;
+    };
+  };
+}
+```
+
+- **Action**: Global command, no instance required
+- **ScopedAction**: Instance-scoped command, requires `instanceId` at registration and dispatch
+
+---
+
+## 2. Instantiation
+
+Create a single instance of the command system:
+
+```typescript
+// /src/lib/command/index.ts
+import { Command } from './command';
+
+export const command = new Command();
+export const actions = command.getActionsProxy();
+```
+
+---
+
+## 3. Registering Handlers
+
+### Unscoped Command
+
+```typescript
+const disposeIncrement = command.handle("counter.increment", async () => {
+  // business logic
+  return; // optional return value
+});
+```
+
+### Scoped Command
+
+```typescript
+const disposeAdd = command.handle(
+  "pipeline.nodes.add",
+  async (node: Node) => {
+    // `node` is strongly typed as Node
+    return { success: true };
+  },
+  {
+    instanceId: "pipeline-1",
+    meta: { label: "Main pipeline" },
+  },
+);
+```
+
+### Cleanup
+
+Always dispose handlers when unmounting:
+
+```typescript
+useEffect(() => {
+  const dispose1 = command.handle("counter.increment", increment);
+  const dispose2 = command.handle("counter.decrement", decrement);
+
+  return () => {
+    dispose1();
+    dispose2();
+  };
+}, [increment, decrement]);
+```
+
+---
+
+## 4. Dispatching Commands
+
+### Unscoped Dispatch
+
+```typescript
+await actions.counter.increment();
+await actions.counter.decrement();
+await actions.counter.reset();
+```
+
+### Scoped Dispatch
+
+```typescript
+await actions.pipeline.nodes.add(
+  { id: "n1", label: "Filter" },
+  { instanceId: "pipeline-1" },
+);
+```
+
+### Direct Dispatch
+
+```typescript
+await command.dispatch("counter.increment");
+await command.dispatch("pipeline.nodes.add", payload, {
+  instanceId: "pipeline-1",
+});
+```
+
+---
+
+## 5. Transitions
+
+Track execution state for loading indicators:
+
+```typescript
+import { TransitionStore } from '@/lib/command/transitions-store';
+
+const transitions = TransitionStore.getInstance();
+
+// Check if command is executing
+const isExecuting = transitions.isExecuting("counter.increment");
+
+// Custom transition key
+await actions.counter.increment(undefined, {
+  transition: ["custom-key"],
+});
+
+const isCustomExecuting = transitions.isExecuting(["custom-key"]);
+```
+
+---
+
+## 6. Instance Registry
+
+Discover registered instances for UI integration:
+
+```typescript
+import { InstanceRegistry } from '@/lib/command/instance-registry';
+
+const registry = InstanceRegistry.getInstance();
+
+// Get all instances for a domain
+const pipelineInstances = registry.getInstances("pipeline");
+// Returns: [{ id: "pipeline-1", label: "Main pipeline" }]
+```
+
+---
+
+## Complete Example
+
+```typescript
+// Component with scoped command
+function PipelineEditor({ pipelineId }: { pipelineId: string }) {
+  const [nodes, setNodes] = useState<Node[]>([]);
+
+  const addNode = useCallback(async (node: Node) => {
+    setNodes((prev) => [...prev, node]);
+  }, []);
+
+  useEffect(() => {
+    const dispose = command.handle("pipeline.nodes.add", addNode, {
+      instanceId: pipelineId,
+      meta: { label: `Pipeline ${pipelineId}` },
+    });
+
+    return () => dispose();
+  }, [pipelineId, addNode]);
+
+  const handleAddNode = () => {
+    actions.pipeline.nodes.add(
+      { id: crypto.randomUUID(), label: "New Node" },
+      { instanceId: pipelineId },
+    );
+  };
+
+  return <button onClick={handleAddNode}>Add Node</button>;
+}
+```
+
+---
+
+## Checklist
+
+* [ ] Define action types in `types.ts`
+* [ ] Instantiate command system
+* [ ] Register handlers with proper cleanup
+* [ ] Use `instanceId` for scoped commands
+* [ ] Dispatch commands via `actions` proxy or `command.dispatch`
+* [ ] Implement transitions for loading states
+* [ ] Use instance registry for discovery (if needed)
+
+---
+
+## Best Practices
+
+1. **Always cleanup handlers** - call dispose function on unmount
+2. **Strong typing** - define payloads and returns in action types
+3. **Scoped commands** - use for domain-specific instances (editors, modals, etc.)
+4. **Unscoped commands** - use for global actions (navigation, auth, etc.)
+5. **Transitions** - track execution state for loading indicators
+6. **Instance registry** - leverage for UI pickers and instance discovery
+7. **Consistent naming** - use dotted paths (e.g., `domain.subdomain.action`)
