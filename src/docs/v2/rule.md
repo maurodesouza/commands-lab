@@ -17,18 +17,23 @@ This is the official and only allowed pattern for command-driven communication i
 
 1. **Command System** (`/src/lib/command/`)
 2. **Action Types** (`/src/lib/command/types.ts`)
-3. **Command Bus** (`/src/lib/command/command-bus.ts`)
-4. **Transitions Store** (`/src/lib/command/transitions-store.ts`)
-5. **Instance Registry** (`/src/lib/command/instance-registry.ts`)
+3. **Global Actions** (`/src/lib/command/global.ts`)
+4. **Command Bus** (`/src/lib/command/command-bus.ts`)
+5. **Transitions Store** (`/src/lib/command/transitions-store.ts`)
+6. **Instance Registry** (`/src/lib/command/instance-registry.ts`)
 
 ---
 
 ## 1. Defining Actions
 
-Define the action surface with strong typing for payloads and returns:
+### Global Actions
+
+Define global action types in `src/lib/command/global.ts`:
 
 ```typescript
-// /src/lib/command/types.ts
+// /src/lib/command/global.ts
+import type { Action, ScopedAction } from "./types";
+
 export interface Actions {
   counter: {
     increment: Action;
@@ -36,16 +41,36 @@ export interface Actions {
     reset: Action;
   };
 
-  pipeline: {
-    nodes: {
-      add: ScopedAction<Node>;
-    };
+  content: {
+    show: ScopedAction<string>;
   };
 }
 ```
 
 - **Action**: Global command, no instance required
 - **ScopedAction**: Instance-scoped command, requires `instanceId` at registration and dispatch
+
+### Feature-Specific Actions (Optional)
+
+For better organization, you can define action types within feature folders using module augmentation:
+
+```typescript
+// /src/features/pipeline/types.ts
+import type { ScopedAction } from "@/lib/command/types";
+
+declare module "#/lib/command/global" {
+  interface Actions {
+    pipeline: {
+      save: ScopedAction<PipelineData>;
+      update: {
+        name: ScopedAction<string>;
+      };
+    };
+  }
+}
+```
+
+This allows you to keep action types close to the feature implementation while maintaining type safety.
 
 ---
 
@@ -211,8 +236,8 @@ function PipelineEditor({ pipelineId }: { pipelineId: string }) {
 
 ## Checklist
 
-* [ ] Define action types in `types.ts`
-* [ ] Instantiate command system
+* [ ] Define global action types in `src/lib/command/global.ts`
+* [ ] Define feature-specific action types using module augmentation (if needed)
 * [ ] Register handlers with proper cleanup
 * [ ] Use `instanceId` for scoped commands
 * [ ] Dispatch commands via `actions` proxy or `command.dispatch`
@@ -225,8 +250,10 @@ function PipelineEditor({ pipelineId }: { pipelineId: string }) {
 
 1. **Always cleanup handlers** - call dispose function on unmount
 2. **Strong typing** - define payloads and returns in action types
-3. **Scoped commands** - use for domain-specific instances (editors, modals, etc.)
-4. **Unscoped commands** - use for global actions (navigation, auth, etc.)
-5. **Transitions** - track execution state for loading indicators
-6. **Instance registry** - leverage for UI pickers and instance discovery
-7. **Consistent naming** - use dotted paths (e.g., `domain.subdomain.action`)
+3. **Global actions** - define in `src/lib/command/global.ts` for shared actions
+4. **Feature-specific actions** - use module augmentation in feature folders for better organization
+5. **Scoped commands** - use for domain-specific instances (editors, modals, etc.)
+6. **Unscoped commands** - use for global actions (navigation, auth, etc.)
+7. **Transitions** - track execution state for loading indicators
+8. **Instance registry** - leverage for UI pickers and instance discovery
+9. **Consistent naming** - use dotted paths (e.g., `domain.subdomain.action`)
