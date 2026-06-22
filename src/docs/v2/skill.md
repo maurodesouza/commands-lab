@@ -353,7 +353,20 @@ export class InstanceRegistry extends Subject {
 }
 ```
 
-### 8. src/lib/command/index.ts
+### 8. src/hooks/use-transition.ts
+```typescript
+import { useSyncExternalStore } from "react";
+import { TransitionStore } from "@/lib/command/transitions-store";
+
+export function useTransition(key: unknown[]) {
+  return useSyncExternalStore(
+    (callback) => TransitionStore.getInstance().subscribe(callback),
+    () => TransitionStore.getInstance().isExecuting(key),
+  );
+}
+```
+
+### 9. src/lib/command/index.ts
 ```typescript
 import type { DeepKeys } from "#/types/helpers";
 import { CommandBus } from "./command-bus";
@@ -485,7 +498,7 @@ export const command = new Command();
 export const actions = command.getActionsProxy();
 ```
 
-### 9. src/lib/command/global.ts
+### 10. src/lib/command/global.ts
 ```typescript
 import type { Action, ScopedAction } from "./types";
 
@@ -504,7 +517,7 @@ export interface Actions {
 }
 ```
 
-### 10. .devin/rules/command-architecture.md
+### 11. .devin/rules/command-architecture.md
 ```markdown
 ---
 trigger: always_on
@@ -670,6 +683,24 @@ await command.dispatch("pipeline.nodes.add", payload, {
 ## 6. Transitions
 
 Track execution state for loading indicators:
+
+### Using the React Hook (Recommended)
+
+```typescript
+import { useTransition } from '@/hooks/use-transition';
+
+function CounterButton() {
+  const isExecuting = useTransition(["counter.increment"]);
+
+  return (
+    <button onClick={() => actions.counter.increment()} disabled={isExecuting}>
+      Increment
+    </button>
+  );
+}
+```
+
+### Using the Store Directly
 
 ```typescript
 import { TransitionStore } from '@/lib/command/transitions-store';

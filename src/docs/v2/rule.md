@@ -167,6 +167,24 @@ await command.dispatch("pipeline.nodes.add", payload, {
 
 Track execution state for loading indicators:
 
+### Using the React Hook (Recommended)
+
+```typescript
+import { useTransition } from '@/hooks/use-transition';
+
+function CounterButton() {
+  const isExecuting = useTransition(["counter.increment"]);
+
+  return (
+    <button onClick={() => actions.counter.increment()} disabled={isExecuting}>
+      Increment
+    </button>
+  );
+}
+```
+
+### Using the Store Directly
+
 ```typescript
 import { TransitionStore } from '@/lib/command/transitions-store';
 
@@ -241,7 +259,7 @@ function PipelineEditor({ pipelineId }: { pipelineId: string }) {
 * [ ] Register handlers with proper cleanup
 * [ ] Use `instanceId` for scoped commands
 * [ ] Dispatch commands via `actions` proxy or `command.dispatch`
-* [ ] Implement transitions for loading states
+* [ ] Use `useTransition` hook for loading states in React components
 * [ ] Use instance registry for discovery (if needed)
 
 ---
