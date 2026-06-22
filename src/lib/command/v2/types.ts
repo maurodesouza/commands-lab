@@ -4,6 +4,9 @@ import type {
 	PayloadFromAction,
 	ReturnFromAction,
 } from "#/types/helpers";
+import type { ActionsV2 } from "./global";
+
+export type { ActionsV2 } from "./global";
 
 // #region Transitions
 export type TransitionKeyV2 = unknown | unknown[];
@@ -44,22 +47,6 @@ export type ScopedAction<TPayload = undefined, TResult = void> = [
 ] extends [undefined]
 	? (payload: undefined, config: Config) => Promise<TResult>
 	: (payload: TPayload, config: Config) => Promise<TResult>;
-
-export interface ActionsV2 {
-	counter: {
-		increment: Action;
-		decrement: Action;
-		reset: Action;
-	};
-
-	content: {
-		show: ScopedAction<string>;
-	};
-
-	async: {
-		execute: Action;
-	};
-}
 // #endregion
 
 // #region Aliases
@@ -83,10 +70,7 @@ export type ActionReturn<TCommand extends ActionPath> = ReturnFromAction<
 >;
 
 export type IsScopedCommand<TCommand extends ActionPath> =
-	ActionValue<TCommand> extends (
-		payload: any,
-		config: Config,
-	) => Promise<any>
+	ActionValue<TCommand> extends (payload: any, config: Config) => Promise<any>
 		? true
 		: false;
 

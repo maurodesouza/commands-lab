@@ -1,12 +1,12 @@
 import type { DeepKeys } from "#/types/helpers";
 import { CommandBusV2 } from "./command-bus";
+import type { ActionsV2 } from "./global";
 import { InstanceRegistry } from "./instance-registry";
 import { TransitionStoreV2 } from "./transitions-store";
 import type {
 	ActionPath,
 	ActionPayload,
 	ActionReturn,
-	ActionsV2,
 	CommandMeta,
 	Config,
 	Handler,
@@ -14,9 +14,9 @@ import type {
 	UnscopedCommands,
 } from "./types";
 
+export type { ActionsV2 } from "./global";
 export type {
 	Action,
-	ActionsV2,
 	HandleConfig,
 	IsScopedCommand,
 	ScopedAction,
